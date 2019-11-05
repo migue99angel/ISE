@@ -1,0 +1,173 @@
+Primero repasamos la sesión de la semana anterior:
+    -Vimos ssh y a nivel de configuración cambiamos el puerto y la gestión de quien puede acceder al servicio
+    -Por defecto forggiden_pasword
+    -Clave público privada
+
+En esta sesión vamos a trabajar con ssh en CentOS , vamos a hablar de copias de seguridad (backups) y del control de versiones (git) de esto hablaremos poco ya que git da para mucho
+
+-Abrimos CentOS con configuración de red
+-Ubuntu lo vamos a usar como servidor
+
+
+Vamos a ir rellenando la siguiente tabla
+
+_______________|__________Activo por defecto____|__________Nomenclatura_________|_____Archivo configuración__________|_________Acceso root por defecto______|_____Firewall_______
+              |
+Ubuntu                          NO                                                            NO COMENTADO                       NO por contraseña              NO
+
+
+__________________________________________________________________________________________________________________________________________________________________________________
+
+
+CentOS                          SI                                                         COMENTADO                                      SI                    SI
+
+__________________________________________________________________________________________________________________________________________________________________________________
+
+
+
+Por defecto, centOS inicia el daemon (demonio) de ssh (esto se comprueba con systemctl status sshd)
+En el archivo de configruacion /etc/ssh/sshd_config descomentamos el PermitRootLogin y lo ponemos a no (no se si esta a no por defecto)
+El profesor nos explica el comando sed para editar texto,
+Si queremos cambiar el puerto 
+
+    sed -e "s/#Port 22/Port 22022" -i /etc/ssh/sshd_config
+
+    -i para el archivo
+    -e para remplazar
+
+Si probamos a reinicar el servicio ssh nos dará un error (systemctl restart sshd) que se puede ver con journalctl -xe
+El error se debe a que el puerto 22022 no es accesible, en la cabecera del archivo de configuración viene el porque del error y como solucianarlo
+
+Si quiero cambiar el puerto tengo que decirselo a SELinux
+
+Para solucionar este problema, usaremos semanage que tendremos que instalar
+No tenemos red porque tenemos que hacer ifup emp0s3 para levantar la interfaz de red
+
+    yum provides semanage       /Equivalente a search en apt
+    yum install /*h*/  donde pone /*instalamos el paquete que dice que es de SELinux al hacer el comnado anterior*/
+    man semanage
+
+    Para cambiar el puerto nos interesa la opción Port
+
+    semanage port -l //Nos lista todos los servicios que están administrados por SELinux
+
+    semanage port -l | grep ssh
+    Vemos que ssh sigue en el 22, luego tendremos que decirle a SELinux que queremos que ssh este en el puerto 22022
+
+    semanage port -a -t ssh_port_t -p tcp 22022 //Este comando sale en el fichero de configuración de sshd
+    
+    semanage port -l | grep ssh //Ahora vemos que si muestra que ssh esta en el 22022
+
+    Intentamos reiniciar el servicio y vemos que esta vez si nos deja. Si ejecutamos systemctl status sshd debería escuchar en el puerto 22022
+
+Parece que funciona desde detnro, veamos desde fuera.
+Si abrimos la de linux vemos que no funciona, esto se debe al cortafuegos
+
+En caso de ubuntu el firewall se llama firewall-cmd
+firewall-cmd status //En CentOS esta activo por defecto
+    firewall-cmd --add-port=22022/tcp  //Con esto añadimos el puerto 22022 a la lista de puertos abiertos //Efectivo para la sesión actual
+Si volvemos a Ubuntu veremos que nos conectaremos esta vez sin problema
+Si reiniciamos la máquina vemos que en Ubuntu no nos podremos conectar , esto se debe que al reiniciar se ha perdido la configuración, debemos añadir
+el puerto a la lista de puertos abiertos de forma permanente
+    Aqui viene el error
+    firewall-cmd --permanent --add-port=22022/tcp //Esto es efectivo para la sesión siguiente por lo que debemos hacer el siguiente comando o reiniciar el sistema
+    firewall-cmd --reload //para que vuelva a leer la configuración 
+
+El firewall de Ubuntu se llama ufw
+Con ufw status veremos que por defecto es inactivo
+ufw enable para activarlo
+Si lo activamos y vamos a CentOS veremos que no funciona porque el cortafuegos lo cierra todo
+Para pemitir un puerto 
+                        ufw allow 22022 //Este cambio es permanente
+Si ponemos ufw status te pone los puertos que están activados
+
+Esta segunda parte de la sesión es más conceptual, vamos a hablar de Copias de seguridad y Control de versiones
+
+¿Que diferencia una copia de un backup?
+Un factor muy importante son los metadatos (Mantenemos información sobre el estado)
+
+-El espacio es un factor importante ya que al hacer un backup estamos haciendo un duplicado de la información
+
+-La perioricidad también es un factor importante, depende de la importancia de los datos, de si puedo almacenar solo las diferencias, la arquitectura...
+
+-Depende de la atomicidad (No hariamos un backup en modo mantenimiento)
+
+-Otro factor es la seguridad
+
+Herramientas para realizar copias de seguridad
+    -dd if=/dev/sdb of=dev/sdc (copia a nivel binario, es muy lento)
+    -cpio
+    -tar 
+
+    dd es una buena herramienta para crear imagenes del sistema (buscar en internet como, pero se puede crear una iso)
+
+    -rsync (el dropbox de los viejunos)
+
+    yum install rsync -y 
+
+    ----PRIMERO UBUNTU----
+    - mkdir dir1 
+    - mkdir dir2
+    - touch dir1/file{1..100} //Crea 100 archivos
+    -   rsync -r dir1/. dir2 
+    -Es como un cp, ahora vamos a hacer lo mismo pero de centOS a Ubuntu
+    - rsync -r -e "ssh -p 22022" /home/mapa/dir1/. mapa@192.160.56.110:/home/mapa/dirTest //-e para decir que vamos a introducir una expresión
+    -Nos pide la contraseña
+    -Ya estarían copiados en la otra máquina
+
+    MIRAR TODAS LAS OPCIONES DE ESTAS HERRAMIENTAS, ESTÁN EN EL PDF EN SWAD ENTRAN EN EL EZAMEN !!!!!
+
+
+
+CONTROL DE VERSIONES
+Git "nos permite hacer backups" y mantener los metadatos (que cambios realice en que momento y porque,además de volver a otras versiones)
+Git fue creado por el creador de linux
+
+Normalmente he usado git para software, en ISE lo vamos a usar para mantener un control de versiones de archivos de configuración para mantener los metadatos
+
+
+
+WORKING DIRECTORY           |   STAGE               | REPOSITORY (LOCAL)            |  REPOSITORY (REMOTE)
+
+git init
+git status
+git add --------------------->fichero------------------->fichero---------------------->fichero
+
+                                                                          fichero<-----------fichero
+
+
+
+
+Con git init para decirle a git oye quiero mantener un control de versiones de este directorio
+Con git status vemos el estado del directorio
+Con git add pasamos el fichero a stage con unos metadatos 
+Con git commit pasamos el fichero de stage al repositorio Local
+Con git push subimos al repositorio remoto
+Con git pull descargamos del repositorio remoto al Local
+
+
+
+
+            yum install git
+
+
+            mkdir lunes
+            cd lunes
+            git init
+            touch archivo1
+            git status //Nos dice que hay un archivo que no se ha "commiteado"
+            git add archivo1
+            git status //Changed to be commited, el archivo esta en stage
+            git commit 
+            Aparecen los metadatos y podemos poner un mensaje
+            git status //todo esta en el repositorio Local
+            Si hacemos git log vemos el mensje quien lo ha hecho y que fecha 
+
+
+
+
+
+
+
+
+

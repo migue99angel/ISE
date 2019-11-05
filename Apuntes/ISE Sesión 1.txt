@@ -1,0 +1,61 @@
+Notas clase prácticas ISE 23/09/2019
+- Correos con prefijo [ISE]
+- Un servidor es un servicio informático que proporciona recursos al que se puede acceder de forma remota
+- Hosting dedicado: Máquina física exclusívamente tuya. No comparte recursos con nadie.
+- VPS: Se trabaja con máquinas virtuales. Recursos hardware compartidos por varios usuarios.
+- Serverless: Se utilizan en "cloud", en la que las aplicaciones montan en esa nube. Permite escalabilidad, es puramente abstracto.
+
+- Ventaja VPS frente dedicado: Elementos hardware se cambian de manera más fácil que en un dedicado.
+- Los Serverless se están imponiendo en el mercado por su buena escalabilidad. El cloud automáticamente extiende los recursos.
+- Diferencia entre VPS y Serverless: Gestión de recursos
+- Contenedor (container): Tenemos el hardware, tenemos el SO del anfitrión y luego tenemos los contenedores. Son simplemente aplicaciones que se pueden comunicar entre sí. Un contenedor puede ejecutar Apache o nginx, otro la base de datos y otro el intérprete. Tiene 3 procesos ejecutándose que se comunican entre sí. La ventaja de utilizar un servidor con contenedores es que te puede ocupar poco espacio (2MB). Cuando lanzas los contenedores, puedes en tiempo de ejecución, lanzar otros contenedores y comunicarlos
+
+- Las máquinas virtuales utilizan un hipervisor entre la capa hardware y la propia máquina virtual. Ejemplo: VirtualBox.
+
+- !!! Hacer configuración de la red en casa.
+
+- RAID: Redundant Array Independent Disk.
+- RAID0: Hay una repartición equitativa entre los discos. No es un RAID porque no es redundante, si uno de los discos falla, habrás perdido mucha información.
+- RAID1: Se hace una copia espejo de HD1 a HD2. El tamaño del RAID está limitado por el menor de los discos. Se pueden definir particiones para que se pueda utilizar el disco duro HD2 en caso de que sea de mayor capacidad que HD1.
+- RAID2,3,4: No se utilizan
+- !!! RAID5,6: Mirar en casa pueden entrar en el examen.
+- RAID10: Combinación de RAID0 y RAID1. Tenemos dos o más RAID1.
+
+- LVM: Logical Volume Manager
+- PV: Physical Volume
+- VG: Volume Group
+- LV: Logical Volume
+- Tenemos un nivel de discos/particiones. Creamos una abstracción que llamamos Volumen Físico. Eso es utilizado por el Grupo de Volúmenes, es como si tuviéramos un nuevo almacenamiento. Luego tenemos los Volúmenes Lógicos que están provisionados por el Grupo de Volúmenes. Con esos Volúmenes Lógicos son los que vamos a trabajar (arranque, raiz, hogar, swap). Si quiero crear uno nuevo, no me preocupo si los datos están almacenados físicamente. Si necesito más espacio añado un nuevo disco y él me lo gestiona.
+
+- Menos rendimiento/eficiencia si usamos reserva dinámica de memoria que tamaño fijo.
+
+- Añadimos un segundo disco en el icono que sale al pulsar sobre SATA
+- Cargar en la unidad de CD la .iso
+- Ejecutamos y configuramos.
+- Nombre de la máquina virtual: Iniciales en minúscula y contraseña practicas,ISE
+- FDE: Full Disk Encryption
+- Manual
+- Los RAID pueden ser software o hardware. Hardware: más eficientes y más caros.
+- Crear tabla de particiones
+- Configurar RAID por software
+- MD: Multidevice. Un RAID es un conjunto de dispostivos. Creamos.
+- RAID1.
+- Configurar el Gestor de Volúmenes Lógicos (LVM).
+- Crear grupo de volúmenes. Se va a llamar "Servidor".
+- Crear volúmen lógico.
+1. arranque (200MB)
+2. hogar (800MB)
+3. swap (1000MB)
+4. raiz (resto)
+- Configurar los volúmenes cifrados. Van a estar dentro de LV, que cada vez que arranque el sistema voy a tener que poner una contraseña. Se encriptan hogar, raíz y swap. Arranque no tiene sentido encriptarlo.
+- Contraseña de cifrado: practicas,ISE
+- Pulsas en hogar. Sistema de ficheros.
+- Para cada Volumen cifrado, debajo, asignamos los discos y los puntos de montaje. También para el arranque.
+- Sin actualizaciones automáticas. System utilities.
+- Instalar cargador GRUB. Seleccionar uno de los dos.
+- Si se jode el sda (o donde esté el GRUB), no se puede arrancar. No es una mala práctica instalarlo en los dos.
+- Please unlock disk: practicas,ISE
+- lsblk
+
+- !!! Diferencias entre ext3, ext4.
+- !!! Instalar CentOS en una máquina virtual base. Misma configuración.

@@ -1,0 +1,66 @@
+Ya tenemos nuestra máquina lista para proveer servicios, en esta práctica trataremos con estos servicios, principalmente con ssh.
+Iniciamos la máquina de Ubuntu que tiene la instalación de Red.
+El profesor propone poner sus comandos sin sudo para identificar cuales son los que lo necesitan
+
+    1ºPrimero instalaremos el servicio ssh
+    tasksel -> Abre una ventana en la que marcaremos ssh (no vamos a usar eso)
+    Vamos a buscar el paquete que debemos instalar
+    apt-search ssh | grep server
+    apt-install openssh-server
+
+    ps -Af para ver si ssh esta funcionando
+
+    ps -Af | grep ssh (A de all y f full description)
+    Otra forma más elegante es usar systemctl status ssh (también podemos hacerlo con sshd)
+    Al instalar openssh ubuntu nos pone en activo ese servicio 
+    Ubuntu no hace diferencia entre el servicio cliente y el servicio servidor
+
+    Otra forma de comprobar el servicio es hacer ssh localhost, al conectarse se crea un fingerprint que es un codigo hash que sirve para garantizar que el usuario que se conecta es quien dice ser
+    No se puede hacer ssh siendo usuario root.
+    ssh IP
+    ssh root@IP
+    ssh IP -l root
+
+    ssh localhost (Desde mi pc)
+
+    Si haces eso una vez no podrás hacerlo con otra máquina virtual porque se quedará registrado en el fichero 
+    vi ./ssh/known_hosts (en este fichero se encuentra aquellos servidores a los que nos hemos concectado usando ssh)
+
+    ls -lha /etc/ssh/ --> vemos dos archivos de configuración
+    -vi /etc/ssh/ssh_config  --> Modificaciones en este fichero no tendrán efecto sobre el servicio
+    -vi /etc/ssh/sshd_config
+        -Se puede cambiar el puerto pero el cliente tiene que saber a que puerto debe conectarse por ssh
+        -PermitRootLogin prohibit-password: Por esto no hemos podido acceder antes mediante root. Se debería cambiar a no, para garantizar de que el root no pueda acceder al ssh de ninguna forma
+        -Se podría acceder mediante root usando una clave público-privada
+        -Estos cambios no tienen efecto si no reiniciamos el servicio systemctl restart sshd 
+        -Hacemos vi /etc/ssh/sshd_config y modificamos el puerto .Port 22022
+        -Tendremos que reiniciar el servicio para que tenga efecto el cambios
+
+
+        Clave público-privada: En un simil de una casa la cerradura es la clave pública y la llave es la privada. La clave público-privada se crea a la vez y la crea el cliente.
+        Al crearla envía la clave privada al servidor y solamente puede acceder aquel que tenga la llave.
+
+        man ssh-keygen
+        man ssh-copy-id
+
+        Nos salimos del modo root (exit)
+
+        //Nos vamos a la máquina cliente (Por ejemplo centOS)
+
+        ls -la .ssh
+        ssh-keygen
+        podemos cambiar la ruta
+        Genera dos ficheros id_rsa y id_rsa.pub
+        Mandamos la clave al servidor
+        ssh-copy-id 192.168.56.105 -l <usuario> -22022
+
+        -Solamente los usuarios que esten de alta en el servidor pueden copiar la clave pública
+
+        -Para acceder a la máquina
+        ssh 192.168.56.105 -p 22022
+
+
+Resumen:
+    Hemos visto como instalar y configurar ssh, tener en cuenta el ssh y sshd para el servidor
+    Hemos visto el acceso con uso de claves público-privadas
+    Eliminar handshake        

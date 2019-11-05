@@ -1,0 +1,13 @@
+Comenzamos la práctica 3
+Esta práctica va de monitorización y profiling, aunque esto último lo veremos de pasada
+
+Monitor: Realiza diagnostico del sistema, nos da información detallada de lo que esta sucendiendo en el sistema a lo largo del tiempo,
+por contrapartida está que consume recursos.
+
+Hay dos tipos de monitores, los hardware (nos da información de los elementos hardware del sistema) y los software
+Los monitores software son aquellos que van a niveles mas altos, hay archivos , (la mayoría en /proc) que nos dan información sobre esto
+
+No vamos a usar monitores hardware porque es absurdo momitorizar hardware monitorizado.
+
+Los monitores generales, son monitores que nos van a dar información tanto del sistema como de la red.
+

@@ -1,0 +1,134 @@
+Primero repasamos la sesión anterior
+    -Vimos ssh en CentOS
+    -Repasamos la tabla de la sesión anterior
+
+    EXAMEN LA SEMANA QUE VIENE
+
+    Esta sesión consistirá en la instalción despliegue y configuración de un servidor web
+
+    Un servidor web es un servidor en el que las peticiones y las respuestas son de tipo web ( el medio es internet ). 
+    Sirve documentos HTML - Hyper Text Markup Language
+    (Hipertexto)Texto que tiene enlaces a sí mismo y hacia afuera. Para comunicar esto con internet utilizamos el protocolo http (Hypertexr tranfer protocol)
+    URI Uniform Resource Identifier
+    URL Uniform Resource Locator
+    Tienen diferencias pero esencialmente son lo mismo, ambas son direcciones de recursos web
+
+    WWW - world wide web
+
+    Todo esto fue desarrollado por Tim Berners-Lee
+
+    La aparición de páginas dinámicas en internet surgió con los lenguajes interpretados porque se pueden realizar cambios en tiempo de ejecución ya que en los compilados al
+    hacer un cambio hay que recompilar y eso es tiempo que el sistema no está dando servicio
+
+    AHORA VAMOS A INSTALAR EL SERVICIO EN UBUNTU
+
+    -Abrimos la máquina de Ubuntu
+    -tasksel
+    -Seleccionamos LAMP server y lo instalamos
+    -Pide una constraseña, ponemos la de siempre, practicas,ISE
+    
+    LAMP es una pila software, son un conjunto de aplicaciones que se combinan entre ellas para ofrecer un servicio 
+    Linux Apache Mysql Php , hay muchas variantes, WAMP, XAMP ...
+
+    -Una vez instalado el lamp vemos si está dando servicio
+    -systemctl status apache2 | vemos que esta activo y dando servicio
+    -También podemos comprobarlo con curl localhost (aparece en html ), es decir accediendo al navegador y poniendo 192.168.56.105
+    -Para comprobar el php abrimos el interprete php -a | el -a es para entrar en el modo interactivo, el interprete   
+    -echo ("Hola mundo")
+    -Para comprobar mysql -u root -p 
+
+    Esto es todo en Ubuntu, nos vamos a CentOS
+
+    -Abrimos la máquina virtual de CentOS
+    -ip addr
+    -ifup enp0s3
+    -Aqui hay que instalar toda la pila LAMP paso a paso, empezamos por Apache
+    -yum search apache | grep server 
+    -Vemos que en CentOS se llama httpd
+    -yum install httpd 
+    -Comprobamos si está funcionando con systemctl status httpd vemos que está deshabilitado y que no está activo
+    -Lo habilitamos con : systemctl enable httpd
+    -Lo activamos con: systemctl start httpd
+    -Habilitarlo lo que hace es que cuando la máquina se reinicie va a estar ejecutnadose
+    -Para comprobarlo aparte de lo de antes no vamos al navegador con 192.168.56.110 y vemos que no está activo, es problema del firewall
+    -firewall-cmd --add-port=80/tcp --permanent //Apache tiene por defecto el puerto 80 
+    -firewall-cmd --add-port=80/tcp
+    -Comprobamos en el navegador y ya funciona
+    -Pasamos a php
+    -yum install php -y 
+    -php -a y vemos que funciona, no tenemos que habilitarlo y activarlo porque no es un servicio si no que es un interprete
+    -Ahora vamos a instalar Mysql, en caso de CentOS vamos a instalar la versión MariaDB que es la versión opensource de MySQL
+    -yum install mariadb -y 
+    -Lo que hemos instalado es el cliente, no el servidor 
+    -yum install mariadb-server -y
+    -mysql -u root -p 
+    -Vemos que no está ni habilitado ni activado
+    -systemctl enable mariadb 
+    -systemctl start mariadb 
+    -Comprobamos el estado y vemos que funciona 
+    -Al acceder dice que acceso denegado, esto se debe a que no hay usuario en la base de datos
+    -mysql_secure_installation
+        Nos pide la contraseña del ROOT DE MARIADB como todavía no hay, pulsamos enter porque no hay contraseña todavia (lo demas todo si)
+    -mysql -u root -p || Vemos que ya funciona
+    -create database mi_bd;
+    -exit
+
+    -Vamos a crear un script php de modo que cuando nos conectemos nos aseguremos de que todo funciona correctamente de forma conjunta
+    Si buscamos php.net/manual/es/function.mysqli-connect.php encontraremos el script que vamos a usar 
+    -Nos vamos a /var/www/html 
+    -Creamos el fichero miscript.php y copiamos el fichero de la página anterior, cuidado con copia pega porque mete caracteres extraños
+    -En la ip dejamos 127.0.0.1 (es localhost) porque si dejamos la otra y cambia no encontraremos la página, ponemos de usuario root y practicas,ISE como contraseña 
+    -El problema de esto es que tenemos la contraseña en texto plano
+    - Ejecutamos php miscript.php en la linea de comando para ver si se está ejecutando correctamente
+    -Vemos que no reconoce la función mysqli_connect()
+    -yum install php-mysql -y 
+    -Comprpobamos con php miscript.php
+    -curl localhost | vemos que nos muestra lo mismo 
+    -El problema es que yo puedo acceder al archivo pero no se está sirviendo el servicio 
+    -Hay que modificar  un archivo vi /etc/httpd/conf/httpd.config 
+    -DirectoryIndex
+        <Ifmodule dir_module>
+            DirectoryIndex index.html miscript.php
+        </IfModule>
+    -Reiniciamos el servicio: systemctl restart httpd 
+    -Ahora en la web lo interpreta pero no se concecta a la base de datos 
+    -Dependiendo de la versión de Linux que tengamos podemos tener problemas con SELinux
+    -getsebool -a  para ver los booleanos de SELinux 
+    -setsebool httpd_can_network_connect_db on 
+    -Este comando no es necesario en algunas máquinas porque algunas al reiniciar el servicio ponen el booleano a true
+
+    LO ÚLTIMO QUE QUEDA ES fail2ban
+
+    yum install fail2ban -y (no esta disponible)
+    yum instal epel-release -y (extra packages enterprise linux)
+    yum yum install fail2ban -y (Ahora si nos dejará)
+
+    El proposito de fail2ban es una herramienta que nos permite crear visiones (para bannear)
+    systemctl enable fail2ban
+    systemctl start fail2ban 
+    fail2ban-client status 
+
+    cd /etc/fail2ban/
+    Hay dos archivos interesantes fail2ban.conf y jail.conf
+    -vi jail.conf 
+    El fichero ya nos avisa de que no lo modifiquemos, que es mejor crear una copia 
+    Por tanto creamos una copia cp jail.conf jail.local 
+    Buscamos JAILS, a la parte de SSH servers, debajo de la linea que pone [sshd] ponemos enabled=true 
+    Guardamos y probamos que funciona, vamos a ubuntu y probamos a conectarnos por ssh 192.169.56.110 -l mapa -p 22022 u (Con la configuración de puertos de la práctica anterior)
+    -systemctl restart fail2ban 
+    Si me equivoco 5 veces seguidas me banea, pero vemos que podemos seguir accediendo, si nos fijamos en el fichero de configuración vemos que en port tiene por defecto ssh
+    eso es el puerto por defecto de ssh, no el que tenemos asignado, como en la sesión anterior la cambiamos tneemos que cambiarlo, port = 22022
+    -Reinicio el sistema 
+    Ahora si pruebas a loguearte con la cuenta banneada, dice que connection refused.
+    -Podemos desbanear a gente con fail2ban-client set sshd unbanip 192.168.56.105 //Esto no es permanente, si reiniciamos el servicio seguirá baneado, habrá que acceder a un log para desbanear de forma permanente 
+    -yum install screen -y 
+    -screen (ctrl+a+d para volver a la "ventana desde la que llame a screen" )
+    -este comando abrirá otro terminal, ahora si abro vi y escribo lo que sea y cierro la terminal de forma forzosa
+    -screen -list, vemos la lista de screens (ventanas). Si quiero reconectarme a esa sesión 
+    -screen -r y el PID (el número que sale en la lista) y me devuelve lo que tenía puesto en el vi 
+    -yum install rkhunter -y 
+    -(root kit hunter )
+    -rkhunter -c, lo que hace es una especie de profiling del sistema, es una especie de antivirus 
+    
+
+

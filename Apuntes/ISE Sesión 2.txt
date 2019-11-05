@@ -1,0 +1,115 @@
+Podemos tener un RAID1 con un disco, pero no crearlo directamente.
+
+Para instalar el grub en el otro disco usar la orden /dev/sdb
+
+Antes que nada, hacer una snapshot de centOS recien instalado (no hace falta 
+introducir un segundo disco dentro de la maquina como en ubuntu), para poder volver 
+atras en caso de que haya algun error. Recomendable hacer esto para cada sesion de prácticas.
+
+Las modificaciones se haran en modo superusuario, por tanto al iniciar, introducir la orden su
+
+Estructura de discos en principio despues de la instalacion deberia quedar asi:
+
+    1 disco con 2 particiones:
+        -sda1, 1GB, con el arranque
+        -sda2, 9GB con:
+            -root (8GB)
+            -swap (1GB)
+
+Reiniciar la maquina, e introducir un segundo disco como hicimos en ubuntu server.
+
+Comprobamos con lsblk si esta bien introducido o no.
+
+lvdisplay, vgdisplay, pvdisplay: Muestra informacion sobre el logical volume, volume group y
+physical volume respectivamente.
+
+lvs, vgs, pvs: Lo de antes pero de manera mas resumida. 
+
+lmvdiskscan: Comando que da informacion general de la estructura de almacenamiento.
+
+Para esta sesion, debemos establecer el sistema como sigue:
+
+MP   /boot      /       []      /var
+LV              root    swap    newvar
+VG              cl      cl      cl
+PV   sda1       sda2    sda2    sdb
+DISK sda        sda     sda     sdb
+
+La ultima columna es la modificacion a realizar, por tanto aumentariamos el tamaño de cl y 
+creamos un volumen lógico llamado newvar, que contendra el espacio suficiente para la nueva ampliacion.
+
+Primer paso:
+    - pvcreate: Crea un nuevo volumen fisico. Es lo que tendremos que hacer para introducir sdb en el sistema.
+    Introduciremos como argumento /dev/sdb.
+
+Segundo paso:
+    - vgextend: Extiende el volume group seleccionado con el dispositivo que le pasemos como segundo argumento.
+    Introducir como argumentos: cl /dev/sdb.
+
+Tercer paso: 
+    - lvcreate: Creamos un nuevo volumen logico. En el manual vienen todos los argumentos posibles, pero introduciremos:
+        -L 4G -n newvar cl 
+    
+mkfs: Crea un nuevo sistema de ficheros, mirar en el manual todas las opciones, pero ahora introduciremos:
+    -t ext4 /dev/mapper/cl-newvar(VG-LV, introducir en este orden)
+            o
+            /dev/cl/newvar
+
+El tamaño de bloque es clave, ya que sera mas optimo o menos dependiendo del tamaño que le asignemos y las tareas
+a las que estara destinada el sistema.
+
+Creamos un directorio temporal dentro de /mnt llamado newvar.
+
+Posteriormente, con el comando mount, montamos el volumen logico creado en la nueva carpeta que hemos creado:
+    mount /dev/mapper/cl-newvar /mnt/newvar
+
+Esto lo creamos porque si montamos directamente en /var, tendriamos dos discos apuntando al mismo sitio, y si eliminamos 
+de uno, se pierde definitivamente. 
+
+cp -R /var /mnt/newvar seria un comando incompleto, ya que:
+    si ponemos solo esto no se copiarian todos los archivos, solo la carpeta, por tanto habria que poner, en
+    vez de /var, /var/. 
+
+    para que el contexto sea correcto, en vez de -R hay que usar la opcion -a
+
+systemctl status: Comando que nos devuelve informacion del sistema.
+systemctl runlevel1.target: Cambiamos de estado el sistema, a modo mantenimiento.
+
+Mirar todos los modos de systemctl en la guia de Red Hat, y sus posibles argumentos en el manual.
+
+SELinux: Security Enhaced Linux. Comprueba que los archivos se estan utilizando de manera correcta a traves del
+contexto.
+
+Contexto: Se puede ver el contexto de un archivo con la opcion -Z de ls. Se pueden ver los distintos tipos de contexto
+dentro de la guia de usuario de Red Hat.
+
+Por tanto, para copiar los datos desde /var a la carpeta temporal creada, tendriamos que usar:
+cp -a /var/. /mnt/newvar
+
+fstab: archivo que no me he enterao mu bien de lo que e bucalo haha
+
+USAR VI PARA MODIFICAR LOS ARCHIVOS.
+
+Cambiar fstab para introducir en la ultima linea:
+/dev/mapper/cl-newvar   /var    ext4    defaults    0 0
+
+Para que los cambios realizados tengan efecto hay que ejecutar mount -a.
+
+Desmontamos la carpeta temporal con umount /mnt/newvar.
+
+Primero desmontamos el nuevo disco: umount /dev/mapper/cl-newvar, porque si no los cambios de /var afectan al nuevo disco.
+
+mv /var  /vartemp, para quitar el /var de root.
+
+Como hemos eliminado /var, tenemos que crear de nuevo la carpeta.
+
+restorecon -Rv /var: Restaura el contexto. Ejecutarlo porque perdemos el contexto de la nueva carpeta de /var
+
+Para acabar de restaurar el contexto, mount -a para restaurar el estado totalmente.
+
+En el modo aislamiento en el que hemos trabajado no da servicio, por tanto deberiamos estar en el menor tiempo 
+posible. Para salir de este modo, ejecutar exit.
+
+Poweroff y hacer snapshot.
+
+TODOS LOS CAMBIOS REALIZADOS COMPROBARLOS CON LOS COMANDOS QUE DAN INFORMACION COMENTADOS ANTERIORMENTE
